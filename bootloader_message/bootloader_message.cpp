@@ -27,6 +27,7 @@
 
 #include <android-base/file.h>
 #include <android-base/hex.h>
+#include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android-base/stringprintf.h>
 #include <android-base/unique_fd.h>
@@ -180,6 +181,7 @@ bool clear_bootloader_message(std::string* err) {
     if (misc_blk_device.empty()) return false;
     return write_misc_partition(&boot, sizeof(boot), misc_blk_device, 0 /* offset */, err);
   }
+  LOG(INFO) << "Clearing BCB";
   return write_bootloader_message(boot, err);
 }
 
@@ -199,11 +201,12 @@ bool write_bootloader_message_to(const std::vector<std::string>& options,
 }
 
 bool update_bootloader_message(const std::vector<std::string>& options, std::string* err) {
-  bootloader_message boot;
+  bootloader_message boot{};
   if (!read_bootloader_message(&boot, err)) {
     return false;
   }
   update_bootloader_message_in_struct(&boot, options);
+  LOG(INFO) << "Writing BCB " << boot.command << " " << boot.recovery;
 
   return write_bootloader_message(boot, err);
 }
@@ -229,7 +232,7 @@ bool update_bootloader_message_in_struct(bootloader_message* boot,
 }
 
 bool write_reboot_bootloader(std::string* err) {
-  bootloader_message boot;
+  bootloader_message boot{};
   if (!read_bootloader_message(&boot, err)) {
     return false;
   }
@@ -238,6 +241,7 @@ bool write_reboot_bootloader(std::string* err) {
     return false;
   }
   strlcpy(boot.command, "bootonce-bootloader", sizeof(boot.command));
+  LOG(INFO) << "Writing BCB cmd: " << boot.command << " args: " << boot.recovery;
   return write_bootloader_message(boot, err);
 }
 
